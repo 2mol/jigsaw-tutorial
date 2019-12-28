@@ -36,25 +36,18 @@ canvas w h children =
             List.lift2 (tile tileSize)
                 (List.range 0 <| xnumtiles - 1)
                 (List.range 0 <| ynumtiles - 1)
-
-        border =
-            Svg.rect
-                [ x "0", y "0", width wStr, height hStr, fillOpacity "0", stroke "#666" ]
-                []
-
-        maybeTiles =
-            if puzzle.draftMode then
-                [ Svg.g [] tiles, border ]
-
-            else
-                []
     in
     Svg.svg
         [ width wStr
         , height hStr
         , viewBox <| "0 0 " ++ wStr ++ " " ++ hStr
         ]
-        (maybeTiles ++ [ Svg.g [] children ])
+        (if puzzle.draftMode then
+            Svg.g [] tiles :: children
+
+         else
+            children
+        )
 
 
 tile : Int -> Int -> Int -> Svg msg
