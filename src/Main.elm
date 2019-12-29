@@ -48,6 +48,9 @@ type alias Curve3 =
 main : Svg msg
 main =
     let
+        cnvs =
+            canvas params.width params.height
+
         grid =
             rectangularGrid puzzle.piecesX puzzle.piecesY
                 |> perturbGrid
@@ -56,15 +59,48 @@ main =
             Dict.values grid
                 |> List.map drawMarker
 
+        isOnBorder edge =
+            False
+                || (edge.start.x == 0 && edge.end.x == 0)
+                || (edge.start.y == 0 && edge.end.y == 0)
+                || (edge.start.x == params.width && edge.end.x == params.width)
+                || (edge.start.y == params.height && edge.end.y == params.height)
+
         edges =
             calcEdges grid
+                |> List.filter (not << isOnBorder)
+
+        ( flips, _ ) =
+            Random.uniform True [ True, False ]
+                |> Random.list (List.length edges)
+                |> (\l -> Random.step l puzzle.seed)
+
+        tongues =
+            List.map2 makeTongue flips edges
+
+        border =
+            Svg.rect
+                [ x "0"
+                , y "0"
+                , width (String.fromInt params.width)
+                , height (String.fromInt params.height)
+                , fillOpacity "0"
+                , stroke "black"
+                ]
+                []
     in
-    canvas params.width
-        params.height
-        [ Svg.g [] markers
-        , Svg.g [] <| List.map drawEdge edges
-        , drawCurve3 basicTongue
-        ]
+    cnvs <|
+        if puzzle.draftMode then
+            [ Svg.g [] <| List.map drawCurve3 tongues
+            , border
+            , Svg.g [] markers
+            , Svg.g [] <| List.map drawEdge edges
+            ]
+
+        else
+            [ Svg.g [] <| List.map drawCurve3 tongues
+            , border
+            ]
 
 
 rectangularGrid : Int -> Int -> Dict ( Int, Int ) Point
@@ -159,6 +195,70 @@ snapToBorder_ howClose maxCoord coord =
 
     else
         coord
+
+
+makeTongue : Bool -> Edge -> Curve3
+makeTongue flip { start, end } =
+    let
+        vEdge =
+            { x = end.x - start.x
+            , y = end.y - start.y
+            }
+
+        vPerp =
+            if start.y /= end.y then
+                { x = 1
+                , y = toFloat -vEdge.x / toFloat vEdge.y |> round
+                }
+
+            else
+                --if start.x /= end.x
+                { x = toFloat -vEdge.y / toFloat vEdge.x |> round
+                , y = 1
+                }
+
+        flipMult =
+            if flip then
+                -1
+
+            else
+                1
+
+        vPerpN =
+            { x = flipMult * toFloat vPerp.x / norm vPerp |> round
+            , y = flipMult * toFloat vPerp.y / norm vPerp |> round
+            }
+
+        middleScale =
+            toFloat puzzle.pixelsPerCell * 0.18 |> round
+
+        scaleV h vect =
+            { x = toFloat vect.x * h |> round
+            , y = toFloat vect.y * h |> round
+            }
+
+        scale h n =
+            toFloat n * h |> round
+
+        middle =
+            { x = (vPerpN.x * middleScale) + scale 0.5 (start.x + end.x)
+            , y = (vPerpN.y * middleScale) + scale 0.5 (start.y + end.y)
+            }
+    in
+    { start = Point start.x start.y
+    , startControl = Point (start.x + scale 0.8 vEdge.x) (start.y + scale 0.8 vEdge.y)
+    , middleControl = Point (middle.x - scale 0.4 vEdge.x) (middle.y - scale 0.4 vEdge.y)
+    , middle = Point middle.x middle.y
+    , endControl = Point (end.x - scale 0.8 vEdge.x) (end.y - scale 0.8 vEdge.y)
+    , end = Point end.x end.y
+    }
+
+
+norm : Point -> Float
+norm vect =
+    (vect.x ^ 2 + vect.y ^ 2)
+        |> toFloat
+        |> sqrt
 
 
 
