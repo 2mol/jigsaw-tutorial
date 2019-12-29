@@ -35,6 +35,16 @@ type alias Edge =
     }
 
 
+type alias Curve3 =
+    { start : Point
+    , startControl : Point
+    , middle : Point
+    , middleControl : Point
+    , endControl : Point
+    , end : Point
+    }
+
+
 main : Svg msg
 main =
     let
@@ -53,6 +63,7 @@ main =
         params.height
         [ Svg.g [] markers
         , Svg.g [] <| List.map drawEdge edges
+        , drawCurve3 basicTongue
         ]
 
 
@@ -175,6 +186,57 @@ drawEdge { start, end } =
         , y2 <| String.fromInt end.y
         , strokeWidth "1"
         , stroke "#c66"
+        ]
+        []
+
+
+basicTongue : Curve3
+basicTongue =
+    { start = Point 0 0
+    , startControl = Point 70 0
+    , middleControl = Point 10 30
+    , middle = Point 50 30
+    , endControl = Point 30 0
+    , end = Point 100 0
+    }
+
+
+drawCurve3 : Curve3 -> Svg msg
+drawCurve3 curve =
+    let
+        m =
+            [ "M"
+            , String.fromInt curve.start.x
+            , String.fromInt curve.start.y
+            ]
+
+        c =
+            [ "C"
+            , String.fromInt curve.startControl.x
+            , String.fromInt curve.startControl.y
+            , String.fromInt curve.middleControl.x
+            , String.fromInt curve.middleControl.y
+            , String.fromInt curve.middle.x
+            , String.fromInt curve.middle.y
+            ]
+
+        s =
+            [ "S"
+            , String.fromInt curve.endControl.x
+            , String.fromInt curve.endControl.y
+            , String.fromInt curve.end.x
+            , String.fromInt curve.end.y
+            ]
+
+        pathString =
+            [ m, c, s ]
+                |> List.map (String.join " ")
+                |> String.join ""
+    in
+    Svg.path
+        [ stroke "black"
+        , fill "none"
+        , d pathString
         ]
         []
 
