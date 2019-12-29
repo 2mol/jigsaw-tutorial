@@ -26,6 +26,12 @@ type alias Point =
     }
 
 
+type alias Edge =
+    { start : Point
+    , end : Point
+    }
+
+
 main : Svg msg
 main =
     let
@@ -35,10 +41,16 @@ main =
         markers =
             Dict.values grid
                 |> List.map drawMarker
+
+        edges =
+            calcEdges grid
     in
-    canvas params.width
+    canvas
+        params.width
         params.height
-        markers
+        [ Svg.g [] markers
+        , Svg.g [] <| List.map drawEdge edges
+        ]
 
 
 rectangularGrid : Int -> Int -> Dict ( Int, Int ) Point
@@ -65,6 +77,32 @@ rectangularGrid nx ny =
         |> Dict.fromList
 
 
+calcEdges : Dict ( Int, Int ) Point -> List Edge
+calcEdges grid =
+    let
+        maybeConnect indices point =
+            Dict.get indices grid
+                |> Maybe.map (\point2 -> { start = point, end = point2 })
+
+        horizontals =
+            grid
+                |> Dict.map (\( ix, iy ) point -> maybeConnect ( ix + 1, iy ) point)
+                |> Dict.toList
+                |> List.sortBy (\( ( _, iy ), _ ) -> iy)
+                |> List.map Tuple.second
+                |> List.filterMap identity
+
+        verticals =
+            grid
+                |> Dict.map (\( ix, iy ) point -> maybeConnect ( ix, iy + 1 ) point)
+                |> Dict.toList
+                |> List.sortBy (\( ( ix, _ ), _ ) -> ix)
+                |> List.map Tuple.second
+                |> List.filterMap identity
+    in
+    horizontals ++ verticals
+
+
 
 -- DRAWING FUNCTIONS
 
@@ -77,6 +115,19 @@ drawMarker { x, y } =
         , r "2"
         , stroke "#666"
         , fillOpacity "0"
+        ]
+        []
+
+
+drawEdge : Edge -> Svg msg
+drawEdge { start, end } =
+    Svg.line
+        [ x1 <| String.fromInt start.x
+        , y1 <| String.fromInt start.y
+        , x2 <| String.fromInt end.x
+        , y2 <| String.fromInt end.y
+        , strokeWidth "1"
+        , stroke "#c66"
         ]
         []
 
