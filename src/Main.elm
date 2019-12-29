@@ -1,17 +1,88 @@
 module Main exposing (main)
 
+import Dict exposing (Dict)
 import List.Extra as List
 import Svg exposing (Svg)
 import Svg.Attributes exposing (..)
 
 
 puzzle =
-    { draftMode = True }
+    { draftMode = True
+    , piecesX = 12
+    , piecesY = 6
+    , pixelsPerCell = 50
+    }
+
+
+params =
+    { width = puzzle.piecesX * puzzle.pixelsPerCell
+    , height = puzzle.piecesY * puzzle.pixelsPerCell
+    }
+
+
+type alias Point =
+    { x : Int
+    , y : Int
+    }
 
 
 main : Svg msg
 main =
-    canvas 800 600 []
+    let
+        grid =
+            rectangularGrid puzzle.piecesX puzzle.piecesY
+
+        markers =
+            Dict.values grid
+                |> List.map drawMarker
+    in
+    canvas params.width
+        params.height
+        markers
+
+
+rectangularGrid : Int -> Int -> Dict ( Int, Int ) Point
+rectangularGrid nx ny =
+    let
+        indicesX =
+            List.range 0 nx
+
+        indicesY =
+            List.range 0 ny
+
+        indices =
+            List.lift2 Tuple.pair indicesX indicesY
+    in
+    indices
+        |> List.map
+            (\( ix, iy ) ->
+                ( ( ix, iy )
+                , { x = ix * puzzle.pixelsPerCell
+                  , y = iy * puzzle.pixelsPerCell
+                  }
+                )
+            )
+        |> Dict.fromList
+
+
+
+-- DRAWING FUNCTIONS
+
+
+drawMarker : Point -> Svg msg
+drawMarker { x, y } =
+    Svg.circle
+        [ cx <| String.fromInt x
+        , cy <| String.fromInt y
+        , r "2"
+        , stroke "#666"
+        , fillOpacity "0"
+        ]
+        []
+
+
+
+-- CANVAS HELPER
 
 
 canvas : Int -> Int -> List (Svg msg) -> Svg msg
