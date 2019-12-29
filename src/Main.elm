@@ -205,31 +205,31 @@ drawCurve3 : Curve3 -> Svg msg
 drawCurve3 curve =
     let
         m =
-            [ "M"
-            , String.fromInt curve.start.x
-            , String.fromInt curve.start.y
+            [ curve.start.x
+            , curve.start.y
             ]
+                |> List.map String.fromInt
 
         c =
-            [ "C"
-            , String.fromInt curve.startControl.x
-            , String.fromInt curve.startControl.y
-            , String.fromInt curve.middleControl.x
-            , String.fromInt curve.middleControl.y
-            , String.fromInt curve.middle.x
-            , String.fromInt curve.middle.y
+            [ curve.startControl.x
+            , curve.startControl.y
+            , curve.middleControl.x
+            , curve.middleControl.y
+            , curve.middle.x
+            , curve.middle.y
             ]
+                |> List.map String.fromInt
 
         s =
-            [ "S"
-            , String.fromInt curve.endControl.x
-            , String.fromInt curve.endControl.y
-            , String.fromInt curve.end.x
-            , String.fromInt curve.end.y
+            [ curve.endControl.x
+            , curve.endControl.y
+            , curve.end.x
+            , curve.end.y
             ]
+                |> List.map String.fromInt
 
         pathString =
-            [ m, c, s ]
+            [ "M" :: m, "C" :: c, "S" :: s ]
                 |> List.map (String.join " ")
                 |> String.join ""
     in
