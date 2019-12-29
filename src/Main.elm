@@ -2,6 +2,7 @@ module Main exposing (main)
 
 import Dict exposing (Dict)
 import List.Extra as List
+import Random
 import Svg exposing (Svg)
 import Svg.Attributes exposing (..)
 
@@ -11,6 +12,8 @@ puzzle =
     , piecesX = 12
     , piecesY = 6
     , pixelsPerCell = 50
+    , seed = Random.initialSeed 666
+    , gridPerturb = 6
     }
 
 
@@ -37,6 +40,7 @@ main =
     let
         grid =
             rectangularGrid puzzle.piecesX puzzle.piecesY
+                |> perturbGrid
 
         markers =
             Dict.values grid
@@ -45,8 +49,7 @@ main =
         edges =
             calcEdges grid
     in
-    canvas
-        params.width
+    canvas params.width
         params.height
         [ Svg.g [] markers
         , Svg.g [] <| List.map drawEdge edges
@@ -101,6 +104,50 @@ calcEdges grid =
                 |> List.filterMap identity
     in
     horizontals ++ verticals
+
+
+perturbGrid : Dict ( Int, Int ) Point -> Dict ( Int, Int ) Point
+perturbGrid grid =
+    let
+        pert =
+            puzzle.gridPerturb
+
+        randomPair =
+            Random.pair
+                (Random.int -pert pert)
+                (Random.int -pert pert)
+
+        randomPairListGen =
+            Random.list (Dict.size grid) randomPair
+
+        ( randomPairList, _ ) =
+            Random.step randomPairListGen puzzle.seed
+    in
+    Dict.values grid
+        |> List.map2 (\( rx, ry ) point -> { x = point.x + rx, y = point.y + ry }) randomPairList
+        -- optional: keep borders straight
+        |> List.map snapToBorder
+        |> List.map2 Tuple.pair (Dict.keys grid)
+        |> Dict.fromList
+
+
+snapToBorder : Point -> Point
+snapToBorder { x, y } =
+    { x = snapToBorder_ puzzle.gridPerturb params.width x
+    , y = snapToBorder_ puzzle.gridPerturb params.height y
+    }
+
+
+snapToBorder_ : Int -> Int -> Int -> Int
+snapToBorder_ howClose maxCoord coord =
+    if coord - howClose <= 0 then
+        0
+
+    else if coord + howClose >= maxCoord then
+        maxCoord
+
+    else
+        coord
 
 
 
